@@ -35,90 +35,70 @@ ApplicationWindow {
                     id: "accountsTable"
                     width:2000
                     height:900
-
-                    TableViewColumn {
-                        role: "folionum"
-                        title: "Folio#"
-                        width: 100
-                    }
-                    TableViewColumn {
-                        role: "folioname"
-                        title: "Name"
-                        width: 200
-                    }
-                    TableViewColumn {
-                        role: "amc"
-                        title: "AMC"
-                        width: 200
-                    }
-                    TableViewColumn {
-                        role: "option"
-                        title: "Option"
-                        width: 200
-                    }
-                    TableViewColumn {
-                        role: "folioowner"
-                        title: "Owner"
-                        width: 200
-                    }
-                    TableViewColumn {
-                        role: "foliocode"
-                        title: "Code"
-                        width: 200
-                    }
-                    TableViewColumn {
-                        role: "foliotype"
-                        title: "Type"
-                        width: 200
-                    }
                     model: accountsModel
+
+                    Component.onCompleted: {
+                        var roles = model.roleNameArray()
+                        for (var i=0; i<roles.length; i++) {
+                            var column = addColumn( Qt.createQmlObject(
+                                "import QtQuick.Controls 1.1; TableViewColumn {}",
+                                this) )
+                            column.role = roles[i]
+                            column.title = roles[i]
+                        }
+                    }
                 }
             }
         }
         Tab {
-            title: "Transactions"
-            TableView {
-                TableViewColumn {
-                    role: "folionum"
-                    title: "Folio#"
-                    width: 100
-                }
-                TableViewColumn {
-                    role: "trandate"
-                    title: "Date"
-                    width: 100
-                }
-                TableViewColumn {
-                    role: "trantype"
-                    title: "Type"
-                    width: 200
-                }
-                TableViewColumn {
-                    role: "tranamt"
-                    title: "Amount"
-                    width: 200
-                }
-                TableViewColumn {
-                    role: "tranrate"
-                    title: "Rate"
-                    width: 200
-                }
-                TableViewColumn {
-                    role: "tranunits"
-                    title: "Units"
-                    width: 200
-                }
-                TableViewColumn {
-                    role: "shiftedcode"
-                    title: "Shifted To"
-                    width: 200
-                }
-                TableViewColumn {
-                    role: "comments"
-                    title: "Comments"
-                    width: 200
-                }
+            title: "Active Folios"
+
+            FolioDetails {
+
             }
+
+            // TableView {
+            //     TableViewColumn {
+            //         role: "folionum"
+            //         title: "Folio#"
+            //         width: 100
+            //     }
+            //     TableViewColumn {
+            //         role: "trandate"
+            //         title: "Date"
+            //         width: 100
+            //     }
+            //     TableViewColumn {
+            //         role: "trantype"
+            //         title: "Type"
+            //         width: 200
+            //     }
+            //     TableViewColumn {
+            //         role: "tranamt"
+            //         title: "Amount"
+            //         width: 200
+            //     }
+            //     TableViewColumn {
+            //         role: "tranrate"
+            //         title: "Rate"
+            //         width: 200
+            //     }
+            //     TableViewColumn {
+            //         role: "tranunits"
+            //         title: "Units"
+            //         width: 200
+            //     }
+            //     TableViewColumn {
+            //         role: "shiftedcode"
+            //         title: "Shifted To"
+            //         width: 200
+            //     }
+            //     TableViewColumn {
+            //         role: "comments"
+            //         title: "Comments"
+            //         width: 200
+            //     }
+            // }
         }
         Tab {
             title: "Reports"

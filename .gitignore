@@ -1,0 +1,4 @@
+*.qmlc
+.vscode
+*.png
+*.lock
