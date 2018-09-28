@@ -1,8 +1,9 @@
 import sys
 from PyQt5.QtWidgets import (QWidget,
     QGridLayout, QFormLayout, QVBoxLayout, QHBoxLayout,
-    QTableView, QGroupBox, QLabel, QLineEdit, QMainWindow,
+    QTableView, QGroupBox, QLabel, QLineEdit, QMainWindow, QAction,
     QApplication)
+from PyQt5.QtGui import QIcon
 
 class folioProperties(QWidget):
     def __init__(self, parent=None):
@@ -92,18 +93,34 @@ class transactionUI(QWidget):
         grid.addWidget(transactionTable(), 1, 0, 1, 2)
 
 
-class Example(QMainWindow):
+class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
         
     def initUI(self):
         self.setCentralWidget(transactionUI())
+
+        exitIcon = QIcon.fromTheme("application-exit")
+
+        exitAct = QAction(exitIcon, 'Exit', self)
+        exitAct.setShortcut('Ctrl+Q')
+        exitAct.setStatusTip('Exit application')
+        exitAct.triggered.connect(self.close)
+
+        #self.statusBar()
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(exitAct)
+
+        toolbar = self.addToolBar('Exit')
+        toolbar.addAction(exitAct)
         self.setWindowTitle('Mutual Funds')
         
         
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = Example()
+    ex = mainWindow()
     ex.show()
     sys.exit(app.exec_())

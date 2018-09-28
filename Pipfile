@@ -10,6 +10,7 @@ name = "pypi"
 [dev-packages]
 pylint = "*"
 pyinstaller = "*"
+rope = "*"
 
 [requires]
 python_version = "3.6"
