@@ -32,7 +32,7 @@ ApplicationWindow {
             title: "Accounts"
             ScrollView {
                 TableView {
-                    id: "accountsTable"
+                    id: accountsTable
                     width:2000
                     height:900
                     model: accountsModel
@@ -53,9 +53,8 @@ ApplicationWindow {
         Tab {
             title: "Active Folios"
 
-            FolioDetails {
-
-            }
+            FolioDetails {}
+            // FolioSummary {}
 
             // TableView {
             //     TableViewColumn {

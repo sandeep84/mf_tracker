@@ -1,10 +1,12 @@
+import QtQuick 2.3
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.11
 
 GridLayout {
     id: folioDetails
     columns: 2
-    
+    rowSpacing: 10
+
     Label { text: "Folio Number" }
     TextField { placeholderText: "Folio Number" }
 

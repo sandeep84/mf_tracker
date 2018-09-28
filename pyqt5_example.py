@@ -3,8 +3,11 @@ import sys
 from PyQt5 import QtSql
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 from PyQt5.QtCore import Qt, pyqtProperty, pyqtSlot, QObject, QByteArray, QVariant, QUrl
-from PyQt5.QtQml import qmlRegisterType, QQmlComponent, QQmlEngine
+from PyQt5.QtQml import qmlRegisterType, QQmlComponent, QQmlApplicationEngine
 from PyQt5.QtWidgets import QWidget, QLabel, QTextEdit, QApplication
+from PyQt5.QtGui import QGuiApplication
+from PyQt5.QtQuick import QQuickView
+
 
 class QtTabModel(QSqlTableModel):
     def __init__(self, db):
@@ -44,25 +47,15 @@ accountsModel.setTable("portfolio")
 accountsModel.setEditStrategy(QSqlTableModel.OnFieldChange)
 accountsModel.select()
 
-# Create the application instance.
-app = QApplication(sys.argv)
+# Create an instance of the application
+app = QGuiApplication(sys.argv)
+# Create QML engine
+engine = QQmlApplicationEngine()
 
-# Register the Python type.  Its URI is 'People', it's v1.0 and the type
-# will be called 'Person' in QML.
-# qmlRegisterType(Person, 'People', 1, 0, 'Person')
-
-# Create a QML engine.
-engine = QQmlEngine()
 engine.rootContext().setContextProperty("accountsModel", accountsModel)
 
-# Create a component factory and load the QML script.
-component = QQmlComponent(engine)
-component.loadUrl(QUrl('app.qml'))
+# Load the qml file into the engine
+engine.load("app.qml")
 
-for error in component.errors():
-    print(error.toString())
-
-# Create an instance of the component.
-person = component.create()
-
-sys.exit(app.exec())
+engine.quit.connect(app.quit)
+sys.exit(app.exec_())
