@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QWidget,
     QTableView, QGroupBox, QLabel, QLineEdit, QMainWindow, QAction,
     QApplication)
 from PyQt5.QtGui import QIcon
+from PyQt5 import QtSql, QtGui, QtCore
 
 class folioProperties(QWidget):
     def __init__(self, parent=None):
@@ -70,12 +71,36 @@ class folioDetails(QWidget):
         boxLayout = QVBoxLayout(self)
         boxLayout.addWidget(groupbox)
 
+class accountsModel(QtSql.QSqlTableModel):
+    def __init__(self):
+        super().__init__()
+        
+        # self.db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+        # self.db.setDatabaseName('mutual_funds.db')        
+        
+        # if not self.db.open():
+        #     QtGui.QMessageBox.critical(None, QtGui.qApp.tr("Cannot open database"),
+        #     QtGui.qApp.tr("Unable to establish a database connection.\n"
+        #         "This example needs SQLite support. Please read "
+        #         "the Qt SQL driver documentation for information "
+        #         "how to build it.\n\n" "Click Cancel to exit."),
+        #     QtGui.QMessageBox.Cancel)
+
+        self.setTable('transactions') 
+        self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+        self.select()
+        self.removeColumn(0)
+
 class transactionTable(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        model = accountsModel()
+        transactionsTableView = QTableView()
+        transactionsTableView.setModel(model)
+        
         layout = QVBoxLayout()
-        layout.addWidget(QTableView())
+        layout.addWidget(transactionsTableView)
 
         groupbox = QGroupBox("Transactions")
         groupbox.setLayout(layout)
@@ -149,11 +174,12 @@ class mainWindow(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(reportAct)
 
-
         self.setWindowTitle('Mutual Funds')
-        
-        
+
 if __name__ == '__main__':
+    db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+    db.setDatabaseName('mutual_funds.db')
+
     app = QApplication(sys.argv)
     ex = mainWindow()
     ex.show()
