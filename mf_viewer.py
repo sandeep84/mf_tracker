@@ -51,16 +51,18 @@ class folioProperties(QWidget):
         self.updateFields()
 
     def updateFields(self):
-        self.folionum = self.model.record(self.index).value("folionum")
+        record = self.model.record(self.index)
+
+        self.folionum = record.value("folionum")
         self.folioUpdated.emit(self.folionum)
 
-        self.folioNumberEdit.setText(self.model.record(self.index).value("folionum"))
-        self.companyNameEdit.setText(self.model.record(self.index).value("amc"))
-        self.fundNameEdit.setText(self.model.record(self.index).value("folioname"))
-        self.optionTypeEdit.setText(self.model.record(self.index).value("option"))
-        self.nameEdit.setText(self.model.record(self.index).value("folioowner"))
-        self.schemeCodeEdit.setText(self.model.record(self.index).value("foliocode"))
-        self.fundTypeEdit.setText(self.model.record(self.index).value("foliotype"))
+        self.folioNumberEdit.setText(record.value("folionum"))
+        self.companyNameEdit.setText(record.value("amc"))
+        self.fundNameEdit.setText(record.value("folioname"))
+        self.optionTypeEdit.setText(record.value("option"))
+        self.nameEdit.setText(record.value("folioowner"))
+        self.schemeCodeEdit.setText(record.value("foliocode"))
+        self.fundTypeEdit.setText(record.value("foliotype"))
 
 class folioDetails(QWidget):
     def __init__(self, parent=None):
@@ -111,13 +113,14 @@ class folioDetails(QWidget):
         self.updateFields()
 
     def updateFields(self):
-        self.basisEdit.setText(str(self.model.record(self.index).value("basis")))
+        record = self.model.record(self.index)
+        self.basisEdit.setText(str(record.value("basis")))
 
 class transactionTable(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.model = accountsModel()
+        self.model = transactionModel()
         transactionsTableView = QTableView()
         transactionsTableView.setModel(self.model)
         
@@ -142,6 +145,7 @@ class transactionUI(QWidget):
 
         self.folioProps.setModel(self.model)
         self.folioDetails.setModel(self.model)
+        self.folioProps.folioUpdated.connect(self.tranTable.model.updateFolioFilter)
 
         grid = QGridLayout(self)
         grid.addWidget(self.folioProps, 0, 0)

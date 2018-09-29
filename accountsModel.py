@@ -6,6 +6,8 @@ class accountsModel(QtSql.QSqlTableModel):
     def __init__(self):
         super().__init__()
 
+        self.transactionModel = transactionModel()
+
         self.setTable('portfolio') 
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
@@ -22,7 +24,7 @@ class accountsModel(QtSql.QSqlTableModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole and index.column() >= self.sqlColumns:
             header = self.headerList[index.column() - self.sqlColumns]
-            return self.extraColumns[header](index)
+            return self.extraColumns[header](index.row())
 
         return super(accountsModel, self).data(index, role)
 
@@ -51,7 +53,36 @@ class accountsModel(QtSql.QSqlTableModel):
         return rec
 
     def calculateBasis(self, index):
-        return 76
+        folio = super().record(index).value("folionum")
+        self.transactionModel.setFilter("folionum='" + folio + "'")
+        self.transactionModel.setSort(self.transactionModel.fieldIndex("trandate"), QtCore.Qt.AscendingOrder)
+        self.transactionModel.select()
+
+        remTrans = []
+        for row in range(self.transactionModel.rowCount()):
+            record = self.transactionModel.record(row)
+
+            tranType = record.value("trantype")
+            units = record.value("tranunits")
+            rate = record.value("tranrate")
+
+            if (tranType == "Purchase"):
+                remTrans.append({"units": units, "rate": rate})
+            elif (tranType == "Redemption") or (tranType == "ProfitB"):
+                while (units > 0) and len(remTrans) > 0:
+                    if (units >= remTrans[-1]["units"]):
+                        units = units - remTrans[-1]["units"]
+                        remTrans.pop()
+                    else:
+                        remTrans[-1]["units"] = remTrans[-1]["units"] - units
+                        units = 0
+        
+        basis = 0
+        for t in remTrans:
+            basis = basis + t["units"] * t["rate"]
+        
+        return "{0:.2f}".format(basis)
+
 
 class transactionModel(QtSql.QSqlTableModel):
     def __init__(self):
