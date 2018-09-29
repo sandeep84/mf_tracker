@@ -1,5 +1,6 @@
 from PyQt5 import QtSql, QtGui, QtCore
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from collections import OrderedDict
 
 class accountsModel(QtSql.QSqlTableModel):
     def __init__(self):
@@ -10,22 +11,25 @@ class accountsModel(QtSql.QSqlTableModel):
         self.select()
 
         self.sqlColumns = super().columnCount()
-        self.extraColumns = ["basis"]
+        self.extraColumns = OrderedDict([
+            ("basis", self.calculateBasis),
+        ])
+        self.headerList = list(self.extraColumns.keys())
 
     def columnCount(self, parent=QtCore.QModelIndex()):
         return super(accountsModel, self).columnCount()+len(self.extraColumns)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole and index.column() >= self.sqlColumns:
-            return self.extraColumns[index.column() - self.sqlColumns]
+            header = self.headerList[index.column() - self.sqlColumns]
+            return self.extraColumns[header](index)
 
         return super(accountsModel, self).data(index, role)
 
     def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         # this is similar to `data`
         if section >= self.sqlColumns and orientation==QtCore.Qt.Horizontal and role==QtCore.Qt.DisplayRole:
-            print(section)
-            return self.extraColumns[section - self.sqlColumns]
+            return self.headerList[section - self.sqlColumns]
 
         return super(accountsModel, self).headerData(section, orientation, role)
 
@@ -39,12 +43,15 @@ class accountsModel(QtSql.QSqlTableModel):
     def record(self, index):
         rec = super().record(index)
 
-        for col in self.extraColumns:
+        for col in self.headerList:
             newField = QtSql.QSqlField(col)
-            newField.setValue(76)
+            newField.setValue(self.extraColumns[col](index))
             rec.append(newField)
 
         return rec
+
+    def calculateBasis(self, index):
+        return 76
 
 class transactionModel(QtSql.QSqlTableModel):
     def __init__(self):
