@@ -101,21 +101,55 @@ class mainWindow(QMainWindow):
     def initUI(self):
         self.setCentralWidget(transactionUI())
 
-        exitIcon = QIcon.fromTheme("application-exit")
-
-        exitAct = QAction(exitIcon, 'Exit', self)
+        exitAct = QAction(QIcon.fromTheme("application-exit"), 'Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(self.close)
 
+        newItemAct = QAction(QIcon.fromTheme("list-add"), 'New', self)
+        newItemAct.setShortcut('Ctrl+N')
+        newItemAct.setStatusTip('New account')
+        #newItemAct.triggered.connect(self.close)
+        
+        removeItemAct = QAction(QIcon.fromTheme("list-remove"), 'New', self)
+        removeItemAct.setStatusTip('Remove account')
+#        removeItemAct.triggered.connect(self.close)
+
+        firstItemAct = QAction(QIcon.fromTheme("media-skip-backward"), 'First', self)
+        firstItemAct.setStatusTip('First account')
+
+        previousItemAct = QAction(QIcon.fromTheme("media-seek-backward"), 'Previous', self)
+        previousItemAct.setShortcut('Ctrl+Left')
+        previousItemAct.setStatusTip('Previous account')
+
+        nextItemAct = QAction(QIcon.fromTheme("media-seek-forward"), 'Next', self)
+        nextItemAct.setShortcut('Ctrl+Right')
+        nextItemAct.setStatusTip('Next account')
+
+        lastItemAct = QAction(QIcon.fromTheme("media-skip-forward"), 'Last', self)
+        lastItemAct.setStatusTip('Last account')
+
+        reportAct = QAction(QIcon.fromTheme("x-office-document"), 'Last', self)
+        reportAct.setStatusTip('Generate Report')
+
         #self.statusBar()
 
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(exitAct)
+        #menubar = self.menuBar()
+        #fileMenu = menubar.addMenu('&File')
+        #fileMenu.addAction(exitAct)
 
         toolbar = self.addToolBar('Exit')
-        toolbar.addAction(exitAct)
+        toolbar.addAction(newItemAct)
+        toolbar.addAction(removeItemAct)
+        toolbar.addSeparator()
+        toolbar.addAction(firstItemAct)
+        toolbar.addAction(previousItemAct)
+        toolbar.addAction(nextItemAct)
+        toolbar.addAction(lastItemAct)
+        toolbar.addSeparator()
+        toolbar.addAction(reportAct)
+
+
         self.setWindowTitle('Mutual Funds')
         
         
