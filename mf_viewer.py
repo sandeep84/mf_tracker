@@ -71,21 +71,10 @@ class folioDetails(QWidget):
         boxLayout = QVBoxLayout(self)
         boxLayout.addWidget(groupbox)
 
-class accountsModel(QtSql.QSqlTableModel):
+class transactionModel(QtSql.QSqlTableModel):
     def __init__(self):
         super().__init__()
         
-        # self.db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
-        # self.db.setDatabaseName('mutual_funds.db')        
-        
-        # if not self.db.open():
-        #     QtGui.QMessageBox.critical(None, QtGui.qApp.tr("Cannot open database"),
-        #     QtGui.qApp.tr("Unable to establish a database connection.\n"
-        #         "This example needs SQLite support. Please read "
-        #         "the Qt SQL driver documentation for information "
-        #         "how to build it.\n\n" "Click Cancel to exit."),
-        #     QtGui.QMessageBox.Cancel)
-
         self.setTable('transactions') 
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
@@ -95,7 +84,7 @@ class transactionTable(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        model = accountsModel()
+        model = transactionModel()
         transactionsTableView = QTableView()
         transactionsTableView.setModel(model)
         

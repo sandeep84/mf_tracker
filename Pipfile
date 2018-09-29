@@ -8,7 +8,6 @@ name = "pypi"
 "pyqt5" = "*"
 
 [dev-packages]
-pylint = "*"
 pyinstaller = "*"
 rope = "*"
 
