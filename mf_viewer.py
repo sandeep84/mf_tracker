@@ -115,6 +115,7 @@ class folioDetails(QWidget):
     def updateFields(self):
         record = self.model.record(self.index)
         self.basisEdit.setText(str(record.value("basis")))
+        self.navEdit.setText(str(record.value("currentnav")))
 
 class transactionTable(QWidget):
     def __init__(self, parent=None):
@@ -219,6 +220,10 @@ class mainWindow(QMainWindow):
         lastItemAct.setStatusTip('Last account')
         lastItemAct.triggered.connect(self.transactionUI.lastIndex)
 
+        updateNAVAct = QAction(QIcon.fromTheme("system-software-update	"), 'Update NAV', self)
+        updateNAVAct.setStatusTip('Update NAV')
+        updateNAVAct.triggered.connect(self.transactionUI.model.updateNAV)
+
         reportAct = QAction(QIcon.fromTheme("x-office-document"), 'Report', self)
         reportAct.setStatusTip('Generate Report')
 
@@ -237,6 +242,7 @@ class mainWindow(QMainWindow):
         toolbar.addAction(nextItemAct)
         toolbar.addAction(lastItemAct)
         toolbar.addSeparator()
+        toolbar.addAction(updateNAVAct)
         toolbar.addAction(reportAct)
 
         self.setWindowTitle('Mutual Funds')

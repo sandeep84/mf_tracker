@@ -1,3 +1,7 @@
+import csv
+import urllib.request
+import codecs
+
 from PyQt5 import QtSql, QtGui, QtCore
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from collections import OrderedDict
@@ -6,6 +10,7 @@ class accountsModel(QtSql.QSqlTableModel):
     def __init__(self):
         super().__init__()
 
+        self.cache = {"folionum": None}
         self.transactionModel = transactionModel()
 
         self.setTable('portfolio') 
@@ -15,6 +20,7 @@ class accountsModel(QtSql.QSqlTableModel):
         self.sqlColumns = super().columnCount()
         self.extraColumns = OrderedDict([
             ("basis", self.calculateBasis),
+            ("currentnav", self.currentNAV),
         ])
         self.headerList = list(self.extraColumns.keys())
 
@@ -52,8 +58,23 @@ class accountsModel(QtSql.QSqlTableModel):
 
         return rec
 
-    def calculateBasis(self, index):
-        folio = super().record(index).value("folionum")
+    @pyqtSlot()
+    def updateNAV(self):
+        url = 'https://www.amfiindia.com/spages/NAVAll.txt'
+        response = urllib.request.urlopen(url)
+        cr = csv.DictReader(codecs.iterdecode(response, 'utf-8'), delimiter=";")
+
+        # QSqlQuery q;
+        # q.prepare("insert into currentnav values(?, ?, ?, ?, ?, ?)")
+
+        for row in cr:
+            print (row)
+
+    def calculateExtraColumns(self, rowIndex):
+        folio = super().record(rowIndex).value("folionum")
+        if self.cache["folionum"] == folio:
+            return
+
         self.transactionModel.setFilter("folionum='" + folio + "'")
         self.transactionModel.setSort(self.transactionModel.fieldIndex("trandate"), QtCore.Qt.AscendingOrder)
         self.transactionModel.select()
@@ -81,7 +102,15 @@ class accountsModel(QtSql.QSqlTableModel):
         for t in remTrans:
             basis = basis + t["units"] * t["rate"]
         
-        return "{0:.2f}".format(basis)
+        self.cache["basis"] = "{0:.2f}".format(basis)
+
+    def calculateBasis(self, index):
+        self.calculateExtraColumns(index)
+        return self.cache["basis"]
+
+    def currentNAV(self, index):
+        folio = super().record(index).value("folionum")
+        return 10
 
 
 class transactionModel(QtSql.QSqlTableModel):
