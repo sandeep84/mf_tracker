@@ -4,7 +4,6 @@ import codecs
 
 from PyQt5 import QtSql, QtGui, QtCore
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from collections import OrderedDict
 
 class accountsModel(QtSql.QSqlTableModel):
     def __init__(self):
@@ -18,11 +17,7 @@ class accountsModel(QtSql.QSqlTableModel):
         self.select()
 
         self.sqlColumns = super().columnCount()
-        self.extraColumns = OrderedDict([
-            ("basis", self.calculateBasis),
-            ("currentnav", self.currentNAV),
-        ])
-        self.headerList = list(self.extraColumns.keys())
+        self.headerList = ["basis", "currentnav"]
 
     def columnCount(self, parent=QtCore.QModelIndex()):
         return super(accountsModel, self).columnCount()+len(self.extraColumns)
@@ -30,7 +25,8 @@ class accountsModel(QtSql.QSqlTableModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole and index.column() >= self.sqlColumns:
             header = self.headerList[index.column() - self.sqlColumns]
-            return self.extraColumns[header](index.row())
+            self.calculateExtraColumns(index.row())
+            return self.cache[header]
 
         return super(accountsModel, self).data(index, role)
 
@@ -48,12 +44,13 @@ class accountsModel(QtSql.QSqlTableModel):
             return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
         return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable
 
-    def record(self, index):
-        rec = super().record(index)
+    def record(self, rowIndex):
+        rec = super().record(rowIndex)
 
+        self.calculateExtraColumns(rowIndex)
         for col in self.headerList:
             newField = QtSql.QSqlField(col)
-            newField.setValue(self.extraColumns[col](index))
+            newField.setValue(self.cache[col])
             rec.append(newField)
 
         return rec
@@ -64,11 +61,24 @@ class accountsModel(QtSql.QSqlTableModel):
         response = urllib.request.urlopen(url)
         cr = csv.DictReader(codecs.iterdecode(response, 'utf-8'), delimiter=";")
 
-        # QSqlQuery q;
-        # q.prepare("insert into currentnav values(?, ?, ?, ?, ?, ?)")
+        QtSql.QSqlDatabase.database().transaction()
+        q = QtSql.QSqlQuery();
+        q.prepare("delete from currentnav")
+        if not q.exec():
+            raise Exception(q.lastError().text())
 
+        q.prepare("insert into currentnav values(:schemecode, :isin, :isin_div_reinv, :schemename, :nav, :date)")
         for row in cr:
-            print (row)
+            if row["Net Asset Value"] is not None:
+                q.bindValue(":schemecode", row["Scheme Code"])
+                q.bindValue(":isin", row["ISIN Div Payout/ ISIN Growth"])
+                q.bindValue(":isin_div_reinv", row["ISIN Div Reinvestment"])
+                q.bindValue(":schemename", row["Scheme Name"])
+                q.bindValue(":nav", row["Net Asset Value"])
+                q.bindValue(":date", row["Date"])
+                if not q.exec():
+                    raise Exception(q.lastError().text())
+        QtSql.QSqlDatabase.database().commit()
 
     def calculateExtraColumns(self, rowIndex):
         folio = super().record(rowIndex).value("folionum")
@@ -103,15 +113,7 @@ class accountsModel(QtSql.QSqlTableModel):
             basis = basis + t["units"] * t["rate"]
         
         self.cache["basis"] = "{0:.2f}".format(basis)
-
-    def calculateBasis(self, index):
-        self.calculateExtraColumns(index)
-        return self.cache["basis"]
-
-    def currentNAV(self, index):
-        folio = super().record(index).value("folionum")
-        return 10
-
+        self.cache["currentnav"] = 10
 
 class transactionModel(QtSql.QSqlTableModel):
     def __init__(self):

@@ -220,7 +220,7 @@ class mainWindow(QMainWindow):
         lastItemAct.setStatusTip('Last account')
         lastItemAct.triggered.connect(self.transactionUI.lastIndex)
 
-        updateNAVAct = QAction(QIcon.fromTheme("system-software-update	"), 'Update NAV', self)
+        updateNAVAct = QAction(QIcon.fromTheme("network-receive"), 'Update NAV', self)
         updateNAVAct.setStatusTip('Update NAV')
         updateNAVAct.triggered.connect(self.transactionUI.model.updateNAV)
 
