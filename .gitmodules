@@ -1,0 +1,3 @@
+[submodule "financial"]
+	path = financial
+	url = https://github.com/peliot/XIRR-and-XNPV.git

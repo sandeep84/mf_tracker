@@ -114,8 +114,14 @@ class folioDetails(QWidget):
 
     def updateFields(self):
         record = self.model.record(self.index)
-        self.basisEdit.setText(str(record.value("basis")))
+        self.basisEdit.setText("{0:.2f}".format(record.value("basis")))
         self.navEdit.setText(str(record.value("currentnav")))
+        self.balanceUnitsEdit.setText("{0:.3f}".format(record.value("balanceunits")))
+        self.currentValueEdit.setText("{0:.3f}".format(record.value("currentvalue")))
+        self.realisedProfitsEdit.setText("{0:.2f}".format(record.value("realisedprofits")))
+        self.unrealisedProfitsEdit.setText("{0:.2f}".format(record.value("unrealisedprofits")))
+        self.totalProfitsEdit.setText("{0:.2f}".format(record.value("totalprofits")))
+        self.xirrEdit.setText("{0:.2%}".format(record.value("xirr")))
 
 class transactionTable(QWidget):
     def __init__(self, parent=None):

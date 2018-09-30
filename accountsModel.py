@@ -1,9 +1,11 @@
 import csv
 import urllib.request
 import codecs
+from datetime import datetime
 
 from PyQt5 import QtSql, QtGui, QtCore
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from financial import financial
 
 class accountsModel(QtSql.QSqlTableModel):
     def __init__(self):
@@ -17,7 +19,11 @@ class accountsModel(QtSql.QSqlTableModel):
         self.select()
 
         self.sqlColumns = super().columnCount()
-        self.headerList = ["basis", "currentnav"]
+        self.headerList = [
+            "basis", "currentnav", "balanceunits", "currentvalue",
+            "realisedprofits", "unrealisedprofits", "totalprofits",
+            "xirr",
+        ]
 
     def columnCount(self, parent=QtCore.QModelIndex()):
         return super(accountsModel, self).columnCount()+len(self.extraColumns)
@@ -85,35 +91,70 @@ class accountsModel(QtSql.QSqlTableModel):
         if self.cache["folionum"] == folio:
             return
 
+        self.cache["folionum"] = folio
         self.transactionModel.setFilter("folionum='" + folio + "'")
         self.transactionModel.setSort(self.transactionModel.fieldIndex("trandate"), QtCore.Qt.AscendingOrder)
         self.transactionModel.select()
 
+        cashflows = []
         remTrans = []
+        self.cache["realisedprofits"] = 0
         for row in range(self.transactionModel.rowCount()):
             record = self.transactionModel.record(row)
 
             tranType = record.value("trantype")
             units = record.value("tranunits")
             rate = record.value("tranrate")
+            amount = record.value("tranamt")
+            date = datetime.strptime(record.value("trandate"), "%Y-%m-%d")
 
-            if (tranType == "Purchase"):
+            if (tranType == "Purchase") or (tranType == "Dividend" and units != ""):
                 remTrans.append({"units": units, "rate": rate})
+                cashflows.append((date, -amount))
             elif (tranType == "Redemption") or (tranType == "ProfitB"):
+                cashflows.append((date, amount))
                 while (units > 0) and len(remTrans) > 0:
                     if (units >= remTrans[-1]["units"]):
                         units = units - remTrans[-1]["units"]
+                        self.cache["realisedprofits"] = self.cache["realisedprofits"] + remTrans[-1]["units"] * (rate - remTrans[-1]["rate"])
                         remTrans.pop()
                     else:
                         remTrans[-1]["units"] = remTrans[-1]["units"] - units
+                        self.cache["realisedprofits"] = self.cache["realisedprofits"] + units * (rate - remTrans[-1]["rate"])
                         units = 0
         
-        basis = 0
+        self.cache["basis"] = 0
+        self.cache["balanceunits"] = 0
         for t in remTrans:
-            basis = basis + t["units"] * t["rate"]
+            self.cache["basis"] = self.cache["basis"] + t["units"] * t["rate"]
+            self.cache["balanceunits"] = self.cache["balanceunits"] + t["units"]
         
-        self.cache["basis"] = "{0:.2f}".format(basis)
-        self.cache["currentnav"] = 10
+        foliocode = super().record(rowIndex).value("foliocode")
+        self.cache["currentnav"] = self.getCurrentNAV(foliocode)
+
+        if self.cache["currentnav"] is not None:
+            self.cache["currentvalue"] = self.cache["balanceunits"] * self.cache["currentnav"]
+            self.cache["unrealisedprofits"] = self.cache["currentvalue"] - self.cache["basis"]
+            self.cache["totalprofits"] = self.cache["realisedprofits"] + self.cache["unrealisedprofits"]
+            
+            cashflows.append((datetime.now(), self.cache["currentvalue"]))
+            self.cache["xirr"] = financial.xirr(cashflows)
+        else:
+            self.cache["currentvalue"] = 0
+            self.cache["unrealisedprofits"] = 0
+            self.cache["totalprofits"] = 0
+            self.cache["xirr"] = 0
+
+    def getCurrentNAV(self, code):
+        q = QtSql.QSqlQuery()
+        q.prepare("select nav from currentnav where schemecode == ?")
+        q.bindValue(0, code)
+        if not q.exec():
+            raise Exception(q.lastError().text())
+        q.next()
+        nav = q.value(0)
+        
+        return nav
 
 class transactionModel(QtSql.QSqlTableModel):
     def __init__(self):
