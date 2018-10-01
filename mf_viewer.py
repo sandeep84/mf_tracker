@@ -159,6 +159,8 @@ class transactionUI(QWidget):
         grid.addWidget(self.folioDetails, 0, 1)
         grid.addWidget(self.tranTable, 1, 0, 1, 2)
 
+        self.updateFields()
+
     @pyqtSlot()
     def firstIndex(self):
         self.index = 0
@@ -181,9 +183,7 @@ class transactionUI(QWidget):
 
     def updateFields(self):
         self.folioProps.setIndex(self.index)
-        self.folioProps.updateFields()
         self.folioDetails.setIndex(self.index)
-        self.folioDetails.updateFields()
 
 class mainWindow(QMainWindow):
     def __init__(self):
@@ -226,7 +226,7 @@ class mainWindow(QMainWindow):
         lastItemAct.setStatusTip('Last account')
         lastItemAct.triggered.connect(self.transactionUI.lastIndex)
 
-        updateNAVAct = QAction(QIcon.fromTheme("network-receive"), 'Update NAV', self)
+        updateNAVAct = QAction(QIcon.fromTheme("emblem-synchronizing"), 'Update NAV', self)
         updateNAVAct.setStatusTip('Update NAV')
         updateNAVAct.triggered.connect(self.transactionUI.model.updateNAV)
 
