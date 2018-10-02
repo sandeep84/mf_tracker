@@ -1,11 +1,11 @@
 import sys
 from PyQt5.QtWidgets import (QWidget,
     QGridLayout, QFormLayout, QVBoxLayout, QHBoxLayout,
-    QTableView, QGroupBox, QLabel, QLineEdit, QCheckBox,
-    QMainWindow, QAction,
+    QTableView, QGroupBox, QLabel, QLineEdit, QCheckBox, QComboBox,
+    QMainWindow, QAction, 
     QApplication)
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QSortFilterProxyModel, Qt
+from PyQt5.QtGui import QIcon, QPalette
 from PyQt5 import QtSql, QtGui, QtCore
 
 from accountsModel import *
@@ -105,6 +105,14 @@ class folioDetails(QWidget):
         boxLayout = QVBoxLayout(self)
         boxLayout.addWidget(groupbox)
 
+        palette = QPalette()
+        palette.setColor(QPalette.Base, palette.color(QPalette.Window))
+        palette.setColor(QPalette.Text, palette.color(QPalette.WindowText))
+        for attr, value in self.__dict__.items():
+            if attr.endswith("Edit"):
+                value.setReadOnly(True)
+                value.setPalette(palette)
+
     def setModel(self, model):
         self.model = model
         self.updateFields()
@@ -192,13 +200,25 @@ class reportUI(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.index = 0
-        self.model = accountsModel()
+        self.selectActiveOnly = False
+
+        self.srcModel = accountsModel()
+        self.proxyModel = QSortFilterProxyModel()
+
+        self.proxyModel.setSourceModel(self.srcModel)
         
-        reportTableView = QTableView()
-        reportTableView.setModel(self.model)
+        self.reportChooser = QComboBox()
+        self.reportChooser.addItems(["Active Folios", "All Folios"])
+        self.reportChooser.currentTextChanged.connect(self.filterChanged)
+        self.filterChanged(self.reportChooser.currentText())
+
+        self.reportTableView = QTableView()
+        self.reportTableView.setModel(self.proxyModel)
+        self.reportTableView.setSortingEnabled(True)
 
         layout = QVBoxLayout()
-        layout.addWidget(reportTableView)
+        layout.addWidget(self.reportChooser)
+        layout.addWidget(self.reportTableView)
 
         groupbox = QGroupBox("Account Summary")
         groupbox.setLayout(layout)
@@ -206,11 +226,20 @@ class reportUI(QWidget):
         boxLayout = QVBoxLayout(self)
         boxLayout.addWidget(groupbox)
 
+    @pyqtSlot(str)
+    def filterChanged(self, filter):
+        if filter == "Active Folios":
+            self.proxyModel.setFilterRegExp("^[1-9].*")
+            self.proxyModel.setFilterKeyColumn(9)
+        else:
+            self.proxyModel.setFilterRegExp(".*")
+
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
         self.createTransactionWindow()
+        self.showMaximized()
         
     def initUI(self):
         self.homeAct = QAction(QIcon.fromTheme("go-home"), 'Home', self)
@@ -297,7 +326,7 @@ class mainWindow(QMainWindow):
         self.nextItemAct.setEnabled(False)
         self.lastItemAct.setEnabled(False)
 
-        self.updateNAVAct.triggered.connect(self.reportUI.model.updateNAV)
+        self.updateNAVAct.triggered.connect(self.reportUI.srcModel.updateNAV)
         
 if __name__ == '__main__':
     db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
