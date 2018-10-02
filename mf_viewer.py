@@ -1,7 +1,8 @@
 import sys
 from PyQt5.QtWidgets import (QWidget,
     QGridLayout, QFormLayout, QVBoxLayout, QHBoxLayout,
-    QTableView, QGroupBox, QLabel, QLineEdit, QMainWindow, QAction,
+    QTableView, QGroupBox, QLabel, QLineEdit, QCheckBox,
+    QMainWindow, QAction,
     QApplication)
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QIcon
@@ -173,65 +174,76 @@ class transactionUI(QWidget):
 
     @pyqtSlot()
     def incrementIndex(self):
-        self.index = self.index + 1
-        self.updateFields()
+        if self.index < self.model.rowCount() - 1:
+            self.index = self.index + 1
+            self.updateFields()
 
     @pyqtSlot()
     def decrementIndex(self):
-        self.index = self.index - 1
-        self.updateFields()
+        if self.index > 0:
+            self.index = self.index - 1
+            self.updateFields()
 
     def updateFields(self):
         self.folioProps.setIndex(self.index)
         self.folioDetails.setIndex(self.index)
 
+class reportUI(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.index = 0
+        self.model = accountsModel()
+        
+        reportTableView = QTableView()
+        reportTableView.setModel(self.model)
+
+        layout = QVBoxLayout()
+        layout.addWidget(reportTableView)
+
+        groupbox = QGroupBox("Account Summary")
+        groupbox.setLayout(layout)
+
+        boxLayout = QVBoxLayout(self)
+        boxLayout.addWidget(groupbox)
+
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.createTransactionWindow()
         
     def initUI(self):
-        self.transactionUI = transactionUI()
-        self.setCentralWidget(self.transactionUI)
+        self.homeAct = QAction(QIcon.fromTheme("go-home"), 'Home', self)
+        self.homeAct.setStatusTip('Home')
+        self.homeAct.triggered.connect(self.createTransactionWindow)
 
-        exitAct = QAction(QIcon.fromTheme("application-exit"), 'Exit', self)
-        exitAct.setShortcut('Ctrl+Q')
-        exitAct.setStatusTip('Exit application')
-        exitAct.triggered.connect(self.close)
+        self.reportAct = QAction(QIcon.fromTheme("x-office-document"), 'Report', self)
+        self.reportAct.setStatusTip('Generate Report')
+        self.reportAct.triggered.connect(self.createReportWindow)
 
-        newItemAct = QAction(QIcon.fromTheme("list-add"), 'New', self)
-        newItemAct.setShortcut('Ctrl+N')
-        newItemAct.setStatusTip('New account')
-        #newItemAct.triggered.connect(self.close)
-        
-        removeItemAct = QAction(QIcon.fromTheme("list-remove"), 'New', self)
-        removeItemAct.setStatusTip('Remove account')
-#        removeItemAct.triggered.connect(self.close)
+        self.newItemAct = QAction(QIcon.fromTheme("list-add"), 'New', self)
+        self.newItemAct.setShortcut('Ctrl+N')
+        self.newItemAct.setStatusTip('New account')
 
-        firstItemAct = QAction(QIcon.fromTheme("media-skip-backward"), 'First', self)
-        firstItemAct.setStatusTip('First account')
-        firstItemAct.triggered.connect(self.transactionUI.firstIndex)
+        self.removeItemAct = QAction(QIcon.fromTheme("list-remove"), 'New', self)
+        self.removeItemAct.setStatusTip('Remove account')
 
-        previousItemAct = QAction(QIcon.fromTheme("media-seek-backward"), 'Previous', self)
-        previousItemAct.setShortcut('Ctrl+Left')
-        previousItemAct.setStatusTip('Previous account')
-        previousItemAct.triggered.connect(self.transactionUI.decrementIndex)
+        self.firstItemAct = QAction(QIcon.fromTheme("media-skip-backward"), 'First', self)
+        self.firstItemAct.setStatusTip('First account')
 
-        nextItemAct = QAction(QIcon.fromTheme("media-seek-forward"), 'Next', self)
-        nextItemAct.setShortcut('Ctrl+Right')
-        nextItemAct.setStatusTip('Next account')
-        nextItemAct.triggered.connect(self.transactionUI.incrementIndex)
+        self.previousItemAct = QAction(QIcon.fromTheme("media-seek-backward"), 'Previous', self)
+        self.previousItemAct.setShortcut('PgUp')
+        self.previousItemAct.setStatusTip('Previous account')
 
-        lastItemAct = QAction(QIcon.fromTheme("media-skip-forward"), 'Last', self)
-        lastItemAct.setStatusTip('Last account')
-        lastItemAct.triggered.connect(self.transactionUI.lastIndex)
+        self.nextItemAct = QAction(QIcon.fromTheme("media-seek-forward"), 'Next', self)
+        self.nextItemAct.setShortcut('PgDown')
+        self.nextItemAct.setStatusTip('Next account')
 
-        updateNAVAct = QAction(QIcon.fromTheme("emblem-synchronizing"), 'Update NAV', self)
-        updateNAVAct.setStatusTip('Update NAV')
-        updateNAVAct.triggered.connect(self.transactionUI.model.updateNAV)
+        self.lastItemAct = QAction(QIcon.fromTheme("media-skip-forward"), 'Last', self)
+        self.lastItemAct.setStatusTip('Last account')
 
-        reportAct = QAction(QIcon.fromTheme("x-office-document"), 'Report', self)
-        reportAct.setStatusTip('Generate Report')
+        self.updateNAVAct = QAction(QIcon.fromTheme("emblem-synchronizing"), 'Update NAV', self)
+        self.updateNAVAct.setStatusTip('Update NAV')
 
         #self.statusBar()
 
@@ -239,20 +251,54 @@ class mainWindow(QMainWindow):
         #fileMenu = menubar.addMenu('&File')
         #fileMenu.addAction(exitAct)
 
-        toolbar = self.addToolBar('Exit')
-        toolbar.addAction(newItemAct)
-        toolbar.addAction(removeItemAct)
-        toolbar.addSeparator()
-        toolbar.addAction(firstItemAct)
-        toolbar.addAction(previousItemAct)
-        toolbar.addAction(nextItemAct)
-        toolbar.addAction(lastItemAct)
-        toolbar.addSeparator()
-        toolbar.addAction(updateNAVAct)
-        toolbar.addAction(reportAct)
+        self.toolbar = self.addToolBar("Navigation")
+        self.toolbar.addAction(self.homeAct)
+        self.toolbar.addAction(self.reportAct)
+        self.toolbar.addAction(self.updateNAVAct)
+
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.newItemAct)
+        self.toolbar.addAction(self.removeItemAct)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.firstItemAct)
+        self.toolbar.addAction(self.previousItemAct)
+        self.toolbar.addAction(self.nextItemAct)
+        self.toolbar.addAction(self.lastItemAct)
 
         self.setWindowTitle('Mutual Funds')
 
+    @pyqtSlot()
+    def createTransactionWindow(self):
+        self.transactionUI = transactionUI()
+        self.setCentralWidget(self.transactionUI)
+
+        self.newItemAct.setEnabled(True)
+        self.removeItemAct.setEnabled(True)
+        self.firstItemAct.setEnabled(True)
+        self.previousItemAct.setEnabled(True)
+        self.nextItemAct.setEnabled(True)
+        self.lastItemAct.setEnabled(True)
+
+        self.firstItemAct.triggered.connect(self.transactionUI.firstIndex)
+        self.previousItemAct.triggered.connect(self.transactionUI.decrementIndex)
+        self.nextItemAct.triggered.connect(self.transactionUI.incrementIndex)
+        self.lastItemAct.triggered.connect(self.transactionUI.lastIndex)
+        self.updateNAVAct.triggered.connect(self.transactionUI.model.updateNAV)
+
+    @pyqtSlot()
+    def createReportWindow(self):
+        self.reportUI = reportUI()
+        self.setCentralWidget(self.reportUI)
+
+        self.newItemAct.setEnabled(False)
+        self.removeItemAct.setEnabled(False)
+        self.firstItemAct.setEnabled(False)
+        self.previousItemAct.setEnabled(False)
+        self.nextItemAct.setEnabled(False)
+        self.lastItemAct.setEnabled(False)
+
+        self.updateNAVAct.triggered.connect(self.reportUI.model.updateNAV)
+        
 if __name__ == '__main__':
     db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
     db.setDatabaseName('mutual_funds.db')

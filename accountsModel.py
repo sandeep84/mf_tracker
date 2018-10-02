@@ -26,7 +26,7 @@ class accountsModel(QtSql.QSqlTableModel):
         ]
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        return super(accountsModel, self).columnCount()+len(self.extraColumns)
+        return super(accountsModel, self).columnCount()+len(self.headerList)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole and index.column() >= self.sqlColumns:
@@ -108,9 +108,17 @@ class accountsModel(QtSql.QSqlTableModel):
             amount = record.value("tranamt")
             date = datetime.strptime(record.value("trandate"), "%Y-%m-%d")
 
-            if (tranType == "Purchase") or (tranType == "Dividend" and units != ""):
+            if (tranType == "Purchase"):
                 remTrans.append({"units": units, "rate": rate})
                 cashflows.append((date, -amount))
+            elif (tranType == "Dividend" and units == ""):
+                self.cache["realisedprofits"] = self.cache["realisedprofits"] + amount
+            elif (tranType == "Dividend" and units != ""):
+                # Dividend reinvestment
+                # Does not affect basis, only affects current value
+                #  - force rate, amount to 0
+                remTrans.append({"units": units, "rate": 0.00})
+                cashflows.append((date, 0.00))
             elif (tranType == "Redemption") or (tranType == "ProfitB"):
                 cashflows.append((date, amount))
                 while (units > 0) and len(remTrans) > 0:
@@ -146,13 +154,15 @@ class accountsModel(QtSql.QSqlTableModel):
             self.cache["xirr"] = 0
 
     def getCurrentNAV(self, code):
+        nav = None
+
         q = QtSql.QSqlQuery()
         q.prepare("select nav from currentnav where schemecode == ?")
         q.bindValue(0, code)
         if not q.exec():
             raise Exception(q.lastError().text())
-        q.next()
-        nav = q.value(0)
+        if q.next():
+            nav = q.value(0)
         
         return nav
 
