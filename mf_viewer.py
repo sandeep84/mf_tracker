@@ -21,6 +21,8 @@ class folioProperties(QWidget):
         self.folionum = None
 
         self.folioNumberEdit = QLineEdit()
+        self.folioNumberEdit.textEdited.connect(self.updateFolioNumber)
+
         self.companyNameEdit = QLineEdit()
         self.fundNameEdit = QLineEdit()
         self.optionTypeEdit = QLineEdit()
@@ -54,16 +56,21 @@ class folioProperties(QWidget):
     def updateFields(self):
         record = self.model.record(self.index)
 
-        self.folionum = record.value("folionum")
+        self.folionum = record.value("Folio Number")
         self.folioUpdated.emit(self.folionum)
 
-        self.folioNumberEdit.setText(record.value("folionum"))
-        self.companyNameEdit.setText(record.value("amc"))
-        self.fundNameEdit.setText(record.value("folioname"))
-        self.optionTypeEdit.setText(record.value("option"))
-        self.nameEdit.setText(record.value("folioowner"))
-        self.schemeCodeEdit.setText(record.value("foliocode"))
-        self.fundTypeEdit.setText(record.value("foliotype"))
+        self.folioNumberEdit.setText(record.value("Folio Number"))
+        self.companyNameEdit.setText(record.value("AMC"))
+        self.fundNameEdit.setText(record.value("Folio Name"))
+        self.optionTypeEdit.setText(record.value("Option"))
+        self.nameEdit.setText(record.value("Owner"))
+        self.schemeCodeEdit.setText(record.value("Scheme Code"))
+        self.fundTypeEdit.setText(record.value("Type"))
+
+    @pyqtSlot(str)
+    def updateFolioNumber(self, folioNum):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("Folio Number"))
+        self.model.setData(idx, folioNum)
 
 class folioDetails(QWidget):
     def __init__(self, parent=None):
@@ -123,14 +130,14 @@ class folioDetails(QWidget):
 
     def updateFields(self):
         record = self.model.record(self.index)
-        self.basisEdit.setText("{0:.2f}".format(record.value("basis")))
-        self.navEdit.setText(str(record.value("currentnav")))
-        self.balanceUnitsEdit.setText("{0:.3f}".format(record.value("balanceunits")))
-        self.currentValueEdit.setText("{0:.3f}".format(record.value("currentvalue")))
-        self.realisedProfitsEdit.setText("{0:.2f}".format(record.value("realisedprofits")))
-        self.unrealisedProfitsEdit.setText("{0:.2f}".format(record.value("unrealisedprofits")))
-        self.totalProfitsEdit.setText("{0:.2f}".format(record.value("totalprofits")))
-        self.xirrEdit.setText("{0:.2%}".format(record.value("xirr")))
+        self.basisEdit.setText("{0:.2f}".format(record.value("Basis")))
+        self.navEdit.setText(str(record.value("Current NAV")))
+        self.balanceUnitsEdit.setText("{0:.3f}".format(record.value("Balance Units")))
+        self.currentValueEdit.setText("{0:.3f}".format(record.value("Current Value")))
+        self.realisedProfitsEdit.setText("{0:.2f}".format(record.value("Realised Profits")))
+        self.unrealisedProfitsEdit.setText("{0:.2f}".format(record.value("Unrealised Profits")))
+        self.totalProfitsEdit.setText("{0:.2f}".format(record.value("Total Profits")))
+        self.xirrEdit.setText("{0:.2%}".format(record.value("XIRR")))
 
 class transactionTable(QWidget):
     def __init__(self, parent=None):
@@ -232,7 +239,7 @@ class reportUI(QWidget):
             self.proxyModel.setFilterRegExp("^[1-9].*")
             self.proxyModel.setFilterKeyColumn(9)
         else:
-            self.proxyModel.setFilterRegExp(".*")
+            self.proxyModel.setFilterRegExp("")
 
 class mainWindow(QMainWindow):
     def __init__(self):
