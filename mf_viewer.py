@@ -22,20 +22,25 @@ class folioProperties(QWidget):
 
         self.folioNumberEdit = QLineEdit()
         self.folioNumberEdit.textEdited.connect(self.updateFolioNumber)
-
         self.companyNameEdit = QLineEdit()
+        self.companyNameEdit.textEdited.connect(self.updateCompanyName)
         self.fundNameEdit = QLineEdit()
+        self.fundNameEdit.textEdited.connect(self.updateFundName)
         self.optionTypeEdit = QLineEdit()
-        self.nameEdit = QLineEdit()
+        self.optionTypeEdit.textEdited.connect(self.updateOptionType)
+        self.ownerEdit = QLineEdit()
+        self.ownerEdit.textEdited.connect(self.updateOwner)
         self.schemeCodeEdit = QLineEdit()
+        self.schemeCodeEdit.textEdited.connect(self.updateSchemeCode)
         self.fundTypeEdit = QLineEdit()
+        self.fundTypeEdit.textEdited.connect(self.updateFundType)
 
         layout = QFormLayout()
         layout.addRow("Folio Number",   self.folioNumberEdit)
         layout.addRow("Company Name",   self.companyNameEdit)
         layout.addRow("Fund Name",      self.fundNameEdit)
         layout.addRow("Option Type",    self.optionTypeEdit)
-        layout.addRow("Name",           self.nameEdit)
+        layout.addRow("Owner",          self.ownerEdit)
         layout.addRow("Scheme Code",    self.schemeCodeEdit)
         layout.addRow("Fund Type",      self.fundTypeEdit)
 
@@ -63,14 +68,43 @@ class folioProperties(QWidget):
         self.companyNameEdit.setText(record.value("AMC"))
         self.fundNameEdit.setText(record.value("Folio Name"))
         self.optionTypeEdit.setText(record.value("Option"))
-        self.nameEdit.setText(record.value("Owner"))
+        self.ownerEdit.setText(record.value("Owner"))
         self.schemeCodeEdit.setText(record.value("Scheme Code"))
         self.fundTypeEdit.setText(record.value("Type"))
 
     @pyqtSlot(str)
     def updateFolioNumber(self, folioNum):
-        idx = self.model.createIndex(self.index, self.model.fieldIndex("Folio Number"))
-        self.model.setData(idx, folioNum)
+        self.model.updateFolioNum(self.index, folioNum)
+
+    @pyqtSlot(str)
+    def updateCompanyName(self, value):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("AMC"))
+        self.model.setData(idx, value)
+
+    @pyqtSlot(str)
+    def updateFundName(self, value):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("Folio Name"))
+        self.model.setData(idx, value)
+
+    @pyqtSlot(str)
+    def updateOptionType(self, value):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("Option"))
+        self.model.setData(idx, value)
+
+    @pyqtSlot(str)
+    def updateOwner(self, value):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("Owner"))
+        self.model.setData(idx, value)
+
+    @pyqtSlot(str)
+    def updateSchemeCode(self, value):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("Scheme Code"))
+        self.model.setData(idx, value)
+
+    @pyqtSlot(str)
+    def updateFundType(self, value):
+        idx = self.model.createIndex(self.index, self.model.fieldIndex("Type"))
+        self.model.setData(idx, value)
 
 class folioDetails(QWidget):
     def __init__(self, parent=None):
@@ -143,12 +177,10 @@ class transactionTable(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.model = transactionModel()
-        transactionsTableView = QTableView()
-        transactionsTableView.setModel(self.model)
+        self.transactionsTableView = QTableView()
         
         layout = QVBoxLayout()
-        layout.addWidget(transactionsTableView)
+        layout.addWidget(self.transactionsTableView)
 
         groupbox = QGroupBox("Transactions")
         groupbox.setLayout(layout)
@@ -156,24 +188,32 @@ class transactionTable(QWidget):
         boxLayout = QVBoxLayout(self)
         boxLayout.addWidget(groupbox)
 
+    def setModel(self, model):
+        self.transactionsTableView.setModel(model)
+        self.transactionsTableView.hideColumn(0)
+        self.transactionsTableView.hideColumn(1)
+
 class transactionUI(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.index = 0
-        self.model = accountsModel()
+        self.model = None
 
         self.folioProps = folioProperties()
         self.folioDetails = folioDetails()
         self.tranTable = transactionTable()
 
-        self.folioProps.setModel(self.model)
-        self.folioDetails.setModel(self.model)
-        self.folioProps.folioUpdated.connect(self.tranTable.model.updateFolioFilter)
-
         grid = QGridLayout(self)
         grid.addWidget(self.folioProps, 0, 0)
         grid.addWidget(self.folioDetails, 0, 1)
         grid.addWidget(self.tranTable, 1, 0, 1, 2)
+
+    def setModel(self, model):
+        self.model = model
+        self.folioProps.setModel(self.model)
+        self.folioDetails.setModel(self.model)
+        self.tranTable.setModel(self.model.transactionModel)
+        self.folioProps.folioUpdated.connect(self.model.transactionModel.updateFolioFilter)
 
         self.updateFields()
 
@@ -209,10 +249,7 @@ class reportUI(QWidget):
         self.index = 0
         self.selectActiveOnly = False
 
-        self.srcModel = accountsModel()
-        self.proxyModel = QSortFilterProxyModel()
-
-        self.proxyModel.setSourceModel(self.srcModel)
+        self.model = None
         
         self.reportChooser = QComboBox()
         self.reportChooser.addItems(["Active Folios", "All Folios"])
@@ -220,7 +257,6 @@ class reportUI(QWidget):
         self.filterChanged(self.reportChooser.currentText())
 
         self.reportTableView = QTableView()
-        self.reportTableView.setModel(self.proxyModel)
         self.reportTableView.setSortingEnabled(True)
 
         layout = QVBoxLayout()
@@ -233,6 +269,12 @@ class reportUI(QWidget):
         boxLayout = QVBoxLayout(self)
         boxLayout.addWidget(groupbox)
 
+    def setModel(self, model):
+        self.model = model
+        self.proxyModel = QSortFilterProxyModel()
+        self.proxyModel.setSourceModel(self.model)
+        self.reportTableView.setModel(self.proxyModel)
+
     @pyqtSlot(str)
     def filterChanged(self, filter):
         if filter == "Active Folios":
@@ -244,6 +286,9 @@ class reportUI(QWidget):
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.model = accountsModel()
+
         self.initUI()
         self.createTransactionWindow()
         self.showMaximized()
@@ -261,7 +306,7 @@ class mainWindow(QMainWindow):
         self.newItemAct.setShortcut('Ctrl+N')
         self.newItemAct.setStatusTip('New account')
 
-        self.removeItemAct = QAction(QIcon.fromTheme("list-remove"), 'New', self)
+        self.removeItemAct = QAction(QIcon.fromTheme("list-remove"), 'Delete', self)
         self.removeItemAct.setStatusTip('Remove account')
 
         self.firstItemAct = QAction(QIcon.fromTheme("media-skip-backward"), 'First', self)
@@ -306,6 +351,7 @@ class mainWindow(QMainWindow):
     @pyqtSlot()
     def createTransactionWindow(self):
         self.transactionUI = transactionUI()
+        self.transactionUI.setModel(self.model)
         self.setCentralWidget(self.transactionUI)
 
         self.newItemAct.setEnabled(True)
@@ -324,6 +370,7 @@ class mainWindow(QMainWindow):
     @pyqtSlot()
     def createReportWindow(self):
         self.reportUI = reportUI()
+        self.reportUI.setModel(self.model)
         self.setCentralWidget(self.reportUI)
 
         self.newItemAct.setEnabled(False)

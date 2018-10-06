@@ -61,6 +61,19 @@ class accountsModel(QtSql.QSqlTableModel):
 
         return rec
 
+    def updateFolioNum(self, rowIndex, folioNum):
+        idx = self.createIndex(rowIndex, self.fieldIndex("Folio Number"))
+        QtSql.QSqlDatabase.database().transaction()
+        q = QtSql.QSqlQuery();
+        q.prepare("update transactions set `Folio Number`=:newFolio where `Folio Number`=:oldFolio")
+        q.bindValue(":oldFolio", self.cache["Folio Number"])
+        q.bindValue(":newFolio", folioNum)
+        if not q.exec():
+            raise Exception(q.lastError().text())
+        QtSql.QSqlDatabase.database().commit()
+        self.setData(idx, folioNum)
+        self.cache["Folio Number"] = folioNum
+
     @pyqtSlot()
     def updateNAV(self):
         url = 'https://www.amfiindia.com/spages/NAVAll.txt'
@@ -174,7 +187,6 @@ class transactionModel(QtSql.QSqlTableModel):
         self.setTable('transactions') 
         self.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
         self.select()
-        self.removeColumn(0)
 
     @pyqtSlot(str)
     def updateFolioFilter(self, folio):
