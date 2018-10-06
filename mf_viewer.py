@@ -219,6 +219,17 @@ class transactionUI(QWidget):
         self.updateFields()
 
     @pyqtSlot()
+    def addEntry(self):
+        self.index = self.model.rowCount()
+        assert(self.model.insertRow(self.index))
+        self.updateFields()
+
+    @pyqtSlot()
+    def removeEntry(self):
+        self.model.removeRow(self.index)
+        self.decrementIndex()
+
+    @pyqtSlot()
     def firstIndex(self):
         self.index = 0
         self.updateFields()
@@ -243,6 +254,9 @@ class transactionUI(QWidget):
     def updateFields(self):
         self.folioProps.setIndex(self.index)
         self.folioDetails.setIndex(self.index)
+
+        if (self.model.isDirty()):
+            self.model.submitAll()
 
 class reportUI(QWidget):
     def __init__(self, parent=None):
@@ -362,6 +376,8 @@ class mainWindow(QMainWindow):
         self.nextItemAct.setEnabled(True)
         self.lastItemAct.setEnabled(True)
 
+        self.newItemAct.triggered.connect(self.transactionUI.addEntry)
+        self.removeItemAct.triggered.connect(self.transactionUI.removeEntry)
         self.firstItemAct.triggered.connect(self.transactionUI.firstIndex)
         self.previousItemAct.triggered.connect(self.transactionUI.decrementIndex)
         self.nextItemAct.triggered.connect(self.transactionUI.incrementIndex)
