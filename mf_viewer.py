@@ -1,3 +1,4 @@
+import os
 import sys
 from PyQt5.QtWidgets import (QWidget,
     QGridLayout, QFormLayout, QVBoxLayout, QHBoxLayout,
@@ -389,4 +390,4 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = mainWindow()
     ex.show()
-    sys.exit(app.exec_())
+    app.exec_()
