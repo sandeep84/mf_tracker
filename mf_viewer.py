@@ -254,7 +254,6 @@ class reportUI(QWidget):
         self.reportChooser = QComboBox()
         self.reportChooser.addItems(["Active Folios", "All Folios"])
         self.reportChooser.currentTextChanged.connect(self.filterChanged)
-        self.filterChanged(self.reportChooser.currentText())
 
         self.reportTableView = QTableView()
         self.reportTableView.setSortingEnabled(True)
@@ -274,6 +273,7 @@ class reportUI(QWidget):
         self.proxyModel = QSortFilterProxyModel()
         self.proxyModel.setSourceModel(self.model)
         self.reportTableView.setModel(self.proxyModel)
+        self.filterChanged(self.reportChooser.currentText())
 
     @pyqtSlot(str)
     def filterChanged(self, filter):
@@ -323,7 +323,7 @@ class mainWindow(QMainWindow):
         self.lastItemAct = QAction(QIcon.fromTheme("media-skip-forward"), 'Last', self)
         self.lastItemAct.setStatusTip('Last account')
 
-        self.updateNAVAct = QAction(QIcon.fromTheme("emblem-synchronizing"), 'Update NAV', self)
+        self.updateNAVAct = QAction(QIcon.fromTheme("emblem-downloads"), 'Update NAV', self)
         self.updateNAVAct.setStatusTip('Update NAV')
 
         #self.statusBar()
@@ -380,7 +380,7 @@ class mainWindow(QMainWindow):
         self.nextItemAct.setEnabled(False)
         self.lastItemAct.setEnabled(False)
 
-        self.updateNAVAct.triggered.connect(self.reportUI.srcModel.updateNAV)
+        self.updateNAVAct.triggered.connect(self.reportUI.model.updateNAV)
         
 if __name__ == '__main__':
     db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
