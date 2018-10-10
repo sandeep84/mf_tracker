@@ -2,8 +2,8 @@ import os
 import sys
 from PyQt5.QtWidgets import (QWidget,
     QGridLayout, QFormLayout, QVBoxLayout, QHBoxLayout,
-    QTableView, QGroupBox, QLabel, QLineEdit, QCheckBox, QComboBox,
-    QMainWindow, QAction, 
+    QTableView, QGroupBox, QLabel, QLineEdit, QCheckBox, QComboBox, QFrame,
+    QMainWindow, QAction, QPushButton,
     QApplication)
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QSortFilterProxyModel, Qt
 from PyQt5.QtGui import QIcon, QPalette
@@ -178,21 +178,46 @@ class transactionTable(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.model = None
         self.transactionsTableView = QTableView()
         
-        layout = QVBoxLayout()
-        layout.addWidget(self.transactionsTableView)
+        headerBox = QFrame()
+        headerBox.setLayout(QHBoxLayout())
+        headerBox.layout().setContentsMargins(0, 0, 0, 0)
+        headerBox.layout().addWidget(QLabel("Transactions"))
 
-        groupbox = QGroupBox("Transactions")
-        groupbox.setLayout(layout)
+        newTransactionButton = QPushButton(QIcon.fromTheme("list-add"), '', self)
+        newTransactionButton.setFixedSize(20, 20)
+        newTransactionButton.clicked.connect(self.addEntry)
+        delTransactionButton = QPushButton(QIcon.fromTheme("list-remove"), '', self)
+        delTransactionButton.setFixedSize(20, 20)
+        delTransactionButton.clicked.connect(self.removeEntry)
+
+        headerBox.layout().addWidget(newTransactionButton)
+        headerBox.layout().addWidget(delTransactionButton)
+        headerBox.layout().addStretch()
 
         boxLayout = QVBoxLayout(self)
-        boxLayout.addWidget(groupbox)
+        boxLayout.addWidget(headerBox)
+        boxLayout.addWidget(self.transactionsTableView)
 
     def setModel(self, model):
-        self.transactionsTableView.setModel(model)
-        self.transactionsTableView.hideColumn(0)
-        self.transactionsTableView.hideColumn(1)
+        self.model = model
+        self.transactionsTableView.setModel(self.model)
+        # self.transactionsTableView.hideColumn(0)
+        # self.transactionsTableView.hideColumn(1)
+
+    @pyqtSlot()
+    def addEntry(self):
+        self.model.insertRow(self.model.rowCount())
+        folioIndex = self.model.createIndex(self.model.rowCount() - 1, self.model.fieldIndex("Folio Number"))
+        self.model.setData(folioIndex, self.model.folioNumber)
+        self.transactionsTableView.selectRow(self.model.rowCount())
+
+    @pyqtSlot()
+    def removeEntry(self):
+        for idx in self.transactionsTableView.selectedIndexes():
+            assert(self.model.removeRow(idx.row()))
 
 class transactionUI(QWidget):
     def __init__(self, parent=None):

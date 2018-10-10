@@ -109,62 +109,65 @@ class accountsModel(QtSql.QSqlTableModel):
         self.transactionModel.setSort(self.transactionModel.fieldIndex("Date"), QtCore.Qt.AscendingOrder)
         self.transactionModel.select()
 
-        cashflows = []
-        remTrans = []
-        self.cache["Realised Profits"] = 0
-        for row in range(self.transactionModel.rowCount()):
-            record = self.transactionModel.record(row)
+        try:
+            cashflows = []
+            remTrans = []
+            self.cache["Realised Profits"] = 0
+            for row in range(self.transactionModel.rowCount()):
+                record = self.transactionModel.record(row)
 
-            tranType = record.value("Type")
-            units = record.value("Units")
-            rate = record.value("Rate")
-            amount = record.value("Amount")
-            date = datetime.strptime(record.value("Date"), "%Y-%m-%d")
+                tranType = record.value("Type")
+                units = record.value("Units")
+                rate = record.value("Rate")
+                amount = record.value("Amount")
+                date = datetime.strptime(record.value("Date"), "%Y-%m-%d")
 
-            if (tranType == "Purchase"):
-                remTrans.append({"units": units, "rate": rate})
-                cashflows.append((date, -amount))
-            elif (tranType == "Dividend" and units == ""):
-                self.cache["Realised Profits"] = self.cache["Realised Profits"] + amount
-            elif (tranType == "Dividend" and units != ""):
-                # Dividend reinvestment
-                # Does not affect basis, only affects current value
-                #  - force rate, amount to 0
-                remTrans.append({"units": units, "rate": 0.00})
-                cashflows.append((date, 0.00))
-            elif (tranType == "Redemption") or (tranType == "ProfitB"):
-                cashflows.append((date, amount))
-                while (units > 0) and len(remTrans) > 0:
-                    if (units >= remTrans[-1]["units"]):
-                        units = units - remTrans[-1]["units"]
-                        self.cache["Realised Profits"] = self.cache["Realised Profits"] + remTrans[-1]["units"] * (rate - remTrans[-1]["rate"])
-                        remTrans.pop()
-                    else:
-                        remTrans[-1]["units"] = remTrans[-1]["units"] - units
-                        self.cache["Realised Profits"] = self.cache["Realised Profits"] + units * (rate - remTrans[-1]["rate"])
-                        units = 0
-        
-        self.cache["Basis"] = 0
-        self.cache["Balance Units"] = 0
-        for t in remTrans:
-            self.cache["Basis"] = self.cache["Basis"] + t["units"] * t["rate"]
-            self.cache["Balance Units"] = self.cache["Balance Units"] + t["units"]
-        
-        foliocode = super().record(rowIndex).value("Scheme Code")
-        self.cache["Current NAV"] = self.getCurrentNAV(foliocode)
-
-        if self.cache["Current NAV"] is not None:
-            self.cache["Current Value"] = self.cache["Balance Units"] * self.cache["Current NAV"]
-            self.cache["Unrealised Profits"] = self.cache["Current Value"] - self.cache["Basis"]
-            self.cache["Total Profits"] = self.cache["Realised Profits"] + self.cache["Unrealised Profits"]
+                if (tranType == "Purchase"):
+                    remTrans.append({"units": units, "rate": rate})
+                    cashflows.append((date, -amount))
+                elif (tranType == "Dividend" and units == ""):
+                    self.cache["Realised Profits"] = self.cache["Realised Profits"] + amount
+                elif (tranType == "Dividend" and units != ""):
+                    # Dividend reinvestment
+                    # Does not affect basis, only affects current value
+                    #  - force rate, amount to 0
+                    remTrans.append({"units": units, "rate": 0.00})
+                    cashflows.append((date, 0.00))
+                elif (tranType == "Redemption") or (tranType == "ProfitB"):
+                    cashflows.append((date, amount))
+                    while (units > 0) and len(remTrans) > 0:
+                        if (units >= remTrans[-1]["units"]):
+                            units = units - remTrans[-1]["units"]
+                            self.cache["Realised Profits"] = self.cache["Realised Profits"] + remTrans[-1]["units"] * (rate - remTrans[-1]["rate"])
+                            remTrans.pop()
+                        else:
+                            remTrans[-1]["units"] = remTrans[-1]["units"] - units
+                            self.cache["Realised Profits"] = self.cache["Realised Profits"] + units * (rate - remTrans[-1]["rate"])
+                            units = 0
             
-            cashflows.append((datetime.now(), self.cache["Current Value"]))
-            self.cache["XIRR"] = financial.xirr(cashflows)
-        else:
-            self.cache["Current Value"] = 0
-            self.cache["Unrealised Profits"] = 0
-            self.cache["Total Profits"] = 0
-            self.cache["XIRR"] = 0
+            self.cache["Basis"] = 0
+            self.cache["Balance Units"] = 0
+            for t in remTrans:
+                self.cache["Basis"] = self.cache["Basis"] + t["units"] * t["rate"]
+                self.cache["Balance Units"] = self.cache["Balance Units"] + t["units"]
+            
+            foliocode = super().record(rowIndex).value("Scheme Code")
+            self.cache["Current NAV"] = self.getCurrentNAV(foliocode)
+
+            if self.cache["Current NAV"] is not None:
+                self.cache["Current Value"] = self.cache["Balance Units"] * self.cache["Current NAV"]
+                self.cache["Unrealised Profits"] = self.cache["Current Value"] - self.cache["Basis"]
+                self.cache["Total Profits"] = self.cache["Realised Profits"] + self.cache["Unrealised Profits"]
+                
+                cashflows.append((datetime.now(), self.cache["Current Value"]))
+                self.cache["XIRR"] = financial.xirr(cashflows)
+            else:
+                self.cache["Current Value"] = 0
+                self.cache["Unrealised Profits"] = 0
+                self.cache["Total Profits"] = 0
+                self.cache["XIRR"] = 0
+        except ValueError:
+            pass
 
     def getCurrentNAV(self, code):
         nav = None
@@ -182,6 +185,7 @@ class accountsModel(QtSql.QSqlTableModel):
 class transactionModel(QtSql.QSqlTableModel):
     def __init__(self):
         super().__init__()
+        self.folioNumber = None
         self.folioFilter = ""
         
         self.setTable('transactions') 
@@ -190,6 +194,10 @@ class transactionModel(QtSql.QSqlTableModel):
 
     @pyqtSlot(str)
     def updateFolioFilter(self, folio):
+        if self.isDirty():
+            self.submitAll()
+
+        self.folioNumber = folio
         self.folioFilter = "`Folio Number`='" + folio + "'"
         self.setFilter(self.folioFilter)
 
