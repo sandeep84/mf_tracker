@@ -204,8 +204,8 @@ class transactionTable(QWidget):
     def setModel(self, model):
         self.model = model
         self.transactionsTableView.setModel(self.model)
-        # self.transactionsTableView.hideColumn(0)
-        # self.transactionsTableView.hideColumn(1)
+        self.transactionsTableView.hideColumn(0)
+        self.transactionsTableView.hideColumn(1)
 
     @pyqtSlot()
     def addEntry(self):
